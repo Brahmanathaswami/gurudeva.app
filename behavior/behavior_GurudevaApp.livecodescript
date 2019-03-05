@@ -62,67 +62,72 @@ command initializeInterface
 end initializeInterface
 
 command getAndDistributeCategories
-  set the defaultstack to "Gurudeva"
-  # the current model is to keep the categories as a delimited file 
-  # as part of the app files: tab and pipe delimited
-  
-  # read the file into the all categories CustomProperty and Global
-  # we parse out all the quotes into the twelve categories from the start
-  # places all quotes for each category into a custom property
-  # those reduces all processing time for display
-  # favorites will have to be save to disk
-  # this routine runs everytime the app opens
-  # possibly using arrays will be more efficient, but I've never
-  # found it easier than just parsing small delimited text files.
-  
-  # on the web server the latest quote set is here:
-  # devhap/public_html/media/apps/gurudeva/gurudeva-quotes.txt
-  # We are fetching it manually and placing this in the 
-  
-  -- jg: textDecode the data file to fix scrambled unicode characters:
-  put textDecode(url ("binfile:" & DocumentsPath()& "gurudeva-quotes.txt"),"UTF8") into gAllQuotes  --jg: need binary data for decoding
-  replace numtochar(13) with LF in gAllQuotes --jg: so it shows right in the VW
-  --  set the uAllQuotes of me to gAllQuotes --jg: don't store; we get these from files now
-  
-  # Big Parser coming now... 
-  
-  put the uCategories of this stack into tCategories
-  
-  # must be tab delimited
-  
-  # we have to step through  all the lines of the all quotes
-  # if the category is present then we pass it off to a variable
-  # then load them into the custom props
-  
-  --  set the linedelimiter to "|"
-  --  set the itemdelimiter to tab
-  --  repeat for each line x in gAllQuotes --jg: takes 8 seconds on Android
-  --    repeat for each item y in tCategories
-  --      put "t" & y & "Set" into tAggregatedSet
-  --      if (item 6 of x contains y) then put x & "|" after gQuoteSets[y]
-  --    end repeat
-  --  end repeat
-
-  set the linedelimiter to "|"
-  put "" into gQuoteSets
-  repeat for each line x in gAllQuotes --jg: this is faster
-    set the itemdel to tab
-    put item 6 of x into tCurCats
-    if the number of words in tCurCats = 0 then next repeat -- no category
-    set the itemdel to comma
-    repeat for each item y in tCurCats
-      put x & "|" after gQuoteSets[word 1 to -1 of y]  -- strip spaces
-    end repeat
-  end repeat
-
-  if dev() then --jg: only do this in IDE; don't need in app
-    put keys(gQuoteSets) into tCategories
-    set the linedelimiter to cr
-    repeat for each line y in tCategories
-      put y & " quotes: " & the number of lines of gQuoteSets[y] & cr after tCountCheck
-    end repeat
-    put tCountCheck into url ("file:"& documentsPath() & "quote-spread-stats.txt")
-  end if
+   try
+      set the defaultstack to "Gurudeva"
+      # the current model is to keep the categories as a delimited file 
+      # as part of the app files: tab and pipe delimited
+      
+      # read the file into the all categories CustomProperty and Global
+      # we parse out all the quotes into the twelve categories from the start
+      # places all quotes for each category into a custom property
+      # those reduces all processing time for display
+      # favorites will have to be save to disk
+      # this routine runs everytime the app opens
+      # possibly using arrays will be more efficient, but I've never
+      # found it easier than just parsing small delimited text files.
+      
+      # on the web server the latest quote set is here:
+      # devhap/public_html/media/apps/gurudeva/gurudeva-quotes.txt
+      # We are fetching it manually and placing this in the 
+      
+      -- jg: textDecode the data file to fix scrambled unicode characters:
+      put textDecode(url ("binfile:" & DocumentsPath()& "gurudeva-quotes.txt"),"UTF8") into gAllQuotes  --jg: need binary data for decoding
+      replace numtochar(13) with LF in gAllQuotes --jg: so it shows right in the VW
+      --  set the uAllQuotes of me to gAllQuotes --jg: don't store; we get these from files now
+      
+      # Big Parser coming now... 
+      
+      put the uCategories of this stack into tCategories
+      
+      # must be tab delimited
+      
+      # we have to step through  all the lines of the all quotes
+      # if the category is present then we pass it off to a variable
+      # then load them into the custom props
+      
+      --  set the linedelimiter to "|"
+      --  set the itemdelimiter to tab
+      --  repeat for each line x in gAllQuotes --jg: takes 8 seconds on Android
+      --    repeat for each item y in tCategories
+      --      put "t" & y & "Set" into tAggregatedSet
+      --      if (item 6 of x contains y) then put x & "|" after gQuoteSets[y]
+      --    end repeat
+      --  end repeat
+      
+      set the linedelimiter to "|"
+      put "" into gQuoteSets
+      repeat for each line x in gAllQuotes --jg: this is faster
+         set the itemdel to tab
+         put item 6 of x into tCurCats
+         if the number of words in tCurCats = 0 then next repeat -- no category
+         set the itemdel to comma
+         repeat for each item y in tCurCats
+            put x & "|" after gQuoteSets[word 1 to -1 of y]  -- strip spaces
+         end repeat
+      end repeat
+      
+      if dev() then --jg: only do this in IDE; don't need in app
+         put keys(gQuoteSets) into tCategories
+         set the linedelimiter to cr
+         repeat for each line y in tCategories
+            put y & " quotes: " & the number of lines of gQuoteSets[y] & cr after tCountCheck
+         end repeat
+         put tCountCheck into url ("file:"& documentsPath() & "quote-spread-stats.txt")
+      end if
+   catch n
+      put n
+   end try
+   
 end getAndDistributeCategories
 
 
