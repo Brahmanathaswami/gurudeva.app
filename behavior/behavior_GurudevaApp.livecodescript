@@ -1,4 +1,4 @@
-script "behavior_GurudevaApp"
+﻿script "behavior_GurudevaApp"
 
 global gAllQuotes,gQuoteSets, gCurrentQuoteSet, gCurrentQuote, gCurrentCategory, gCurrentQuoteID
 global gQuotePickerFlag,gShowIsRunning --  gImageLoc handled in cd 2 now, gReport not used
@@ -268,74 +268,75 @@ function getNextHistoryQuote pDir -- pull a quote from the history list, store b
 end getNextHistoryQuote
 
 Command getRandomQuote pQuote
-  --jg: if pQuote is empty, get a random one, otherwise
-  --jg: use the one passed from the history list
-  if the short name of this cd <> "main-view" then exit getRandomQuote --jg
-  try -- avoids error if user navigates away quickly
-    --    put the rect of group "quoteControl" into tQuoteSpace --jg: moved down so we can show loading msg on launch
-    --    lock screen for visual effect in rect tQuoteSpace
-    --    set the blendlevel of group "quoteControl" to 0
-    --    show group "quoteControl"
-    
-    set the linedelimiter to "|"
-    set the itemdelimiter to tab
-    if pQuote <> "" then -- use history quote
-      put pQuote into tOneQuoteData
-    else -- get random quote; save to history
-      # on start up, the gCurrentCatogory will be empty
-      # We need to declare the category 
-      # and pass the quotes to the current working set
-      # Same case if user choose "All" from categories
+   --jg: if pQuote is empty, get a random one, otherwise
+   --jg: use the one passed from the history list
+   if the short name of this cd <> "main-view" then exit getRandomQuote --jg
+   try -- avoids error if user navigates away quickly
+      --    put the rect of group "quoteControl" into tQuoteSpace --jg: moved down so we can show loading msg on launch
+      --    lock screen for visual effect in rect tQuoteSpace
+      --    set the blendlevel of group "quoteControl" to 0
+      --    show group "quoteControl"
       
-      if (gCurrentCategory is empty) OR (gCurrentCategory is "All") then 
-        put "all" into gCurrentCategory
-        put gAllQuotes into gCurrentQuoteSet --jg: we should remove this to save RAM; value is already in gAllQuotes
+      set the linedelimiter to "|"
+      set the itemdelimiter to tab
+      if pQuote <> "" then -- use history quote
+         put pQuote into tOneQuoteData
+      else -- get random quote; save to history
+         # on start up, the gCurrentCatogory will be empty
+         # We need to declare the category 
+         # and pass the quotes to the current working set
+         # Same case if user choose "All" from categories
+         
+         if (gCurrentCategory is empty) OR (gCurrentCategory is "All") then 
+            put "all" into gCurrentCategory
+            put gAllQuotes into gCurrentQuoteSet --jg: we should remove this to save RAM; value is already in gAllQuotes
+         end if
+         
+         if gCurrentCategory is "Favorites" then
+            put url ("file:" & localPath() & "users-favorite-quotes.txt") into  gCurrentQuoteSet
+         end if
+         
+         # Otherwise the current quote set will be set elsewhere to
+         # the quotes for a specific category. see Categories card.
+         if the number of words in sNextRandomQuote > 0 then -- used cached quote for speed
+            put sNextRandomQuote into tOneQuoteData
+         else
+            put  ( line (random ( the number of lines of gCurrentQuoteSet) ) of gCurrentQuoteSet) into tOneQuoteData
+         end if
+         saveHistoryQuote tOneQuoteData
       end if
+      # We have to think about favorites and tweets and face book 
+      # So we will track the quote ID
+      put item 1 of tOneQuoteData into gCurrentQuoteID
+      put item 2 of tOneQuoteData  into gCurrentQuote
       
-      if gCurrentCategory is "Favorites" then
-        put url ("file:" & localPath() & "users-favorite-quotes.txt") into  gCurrentQuoteSet
-      end if
+      put the rect of group "quoteControl" into tQuoteSpace
+      lock screen for visual effect in rect tQuoteSpace
+      set the blendlevel of group "quoteControl" to 0
+      show group "quoteControl"
       
-      # Otherwise the current quote set will be set elsewhere to
-      # the quotes for a specific category. see Categories card.
-      if the number of words in sNextRandomQuote > 0 then -- used cached quote for speed
-        put sNextRandomQuote into tOneQuoteData
+      #    put "â€œ" & item 2 of tOneQuoteData & "â€"  into fld "quote" -- AAG: unicode gremlins here
+      put quote & item 2 of tOneQuoteData & quote  into fld "quote" 
+      
+      # OK, run the view: photo first, wait, then quote, then stop
+      
+      unlock screen with visual effect scroll down fast
+      wait 1 millisecond with messages -- redraw screen
+      
+      if  ( (the formattedheight of fld "quote") -  (the height of fld "quote") ) > 15 then -- show "more text" indicator
+         --setMoreTextIndicator "on"
+         if isMobile() then -- create mobile scroller
+            set the vScroll of fld "quote" to 0 -- ensures correct initial alignment
+            createScroller "quote" -- replaces any existing one
+         end if
       else
-        put  ( line (random ( the number of lines of gCurrentQuoteSet) ) of gCurrentQuoteSet) into tOneQuoteData
+         --setMoreTextIndicator "off"
       end if
-      saveHistoryQuote tOneQuoteData
-    end if
-    # We have to think about favorites and tweets and face book 
-    # So we will track the quote ID
-    put item 1 of tOneQuoteData into gCurrentQuoteID
-    put item 2 of tOneQuoteData  into gCurrentQuote
-    
-    put the rect of group "quoteControl" into tQuoteSpace
-    lock screen for visual effect in rect tQuoteSpace
-    set the blendlevel of group "quoteControl" to 0
-    show group "quoteControl"
-    
-    put "“" & item 2 of tOneQuoteData & "”"  into fld "quote"
-    
-    # OK, run the view: photo first, wait, then quote, then stop
-    
-    unlock screen with visual effect scroll down fast
-    wait 1 millisecond with messages -- redraw screen
-    
-    if  ( (the formattedheight of fld "quote") -  (the height of fld "quote") ) > 15 then -- show "more text" indicator
-      --setMoreTextIndicator "on"
-      if isMobile() then -- create mobile scroller
-        set the vScroll of fld "quote" to 0 -- ensures correct initial alignment
-        createScroller "quote" -- replaces any existing one
-      end if
-    else
-      --setMoreTextIndicator "off"
-    end if
-  catch tErr
-    log tErr --jg
-  end try
-  cacheNextRandomQuote --jg: store the next one for quick retrieval
-  put "0" into gShowIsRunning
+   catch tErr
+      log tErr --jg
+   end try
+   cacheNextRandomQuote --jg: store the next one for quick retrieval
+   put "0" into gShowIsRunning
 end getRandomQuote
 
 on cacheNextRandomQuote
@@ -921,14 +922,14 @@ function checkQuoteFits
 end checkQuoteFits
 
 function checkScrollDone
-   put the formattedHeight of fld "quote" into tTextHeight
+   put the formattedHeight of fld "quote" into tTextHeight
    put the vScroll of fld "quote" into tVscroll
-    put tTextHeight - tVscroll into tBalanceToScroll
-   if tBalanceToScroll < 195 then
-        return   "true"
-   else
-      return  "false"
-    end if
+   put tTextHeight - tVscroll into tBalanceToScroll
+   if tBalanceToScroll < 195 then
+      return   "true"
+   else
+      return  "false"
+   end if
 end checkScrollDone
 
 
